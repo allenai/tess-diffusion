@@ -1,0 +1,5 @@
+from .configuration_roberta import RobertaDiffusionConfig
+from .modeling_roberta import RobertaForDiffusionLM
+
+from .configuration_xlm_roberta import XLMRobertaDiffusionConfig
+from .modeling_xlm_roberta import XLMRobertaForDiffusionLM
