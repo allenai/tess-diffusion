@@ -1,11 +1,13 @@
+import pdb
+
+import numpy as np
 import torch
 import torch.nn.functional as F
-import numpy as np
-import pdb
-from sdlm.utils import convert_to_simplex, join_texts
-from sdlm.metrics.perplexity import perplexity, conditional_perplexity
-from sdlm.metrics.metrics import distinct_n_grams, mauve, zipf
+
+from sdlm.metrics.metrics import distinct_n_grams, zipf
+from sdlm.metrics.perplexity import conditional_perplexity, perplexity
 from sdlm.metrics.repetition import repetition
+from sdlm.utils import convert_to_simplex, join_texts
 
 
 def sample_logits(sampling_type, logits, top_p, temperature):
@@ -30,7 +32,7 @@ def sample_logits(sampling_type, logits, top_p, temperature):
             # sample from the filtered distribution.
             token_ids = torch.distributions.categorical.Categorical(logits=filtered_logits).sample()
         else:
-            token_ids=torch.argmax(probs, dim=-1)
+            token_ids = torch.argmax(probs, dim=-1)
     else:
         assert NotImplementedError
     return token_ids
@@ -184,11 +186,11 @@ def evaluate_generation(
     if is_conditional_generation:
         gold_texts = results[gold_text_key]
         if not skip_special_tokens:
-           gold_texts = process_text(gold_texts)
+            gold_texts = process_text(gold_texts)
     if "prefixes" in results:
         prefixes = results["prefixes"]
     else:
-        prefixes = None 
+        prefixes = None
 
     for key in keys:
         key_metrics = {}
@@ -202,12 +204,19 @@ def evaluate_generation(
 
         # Perplexity measured by a causal model.
         if prefixes is None:
-            key_metrics.update({"perplexity": perplexity(non_empty_texts, causal_model, causal_tokenizer)["mean_perplexity"]})
+            key_metrics.update(
+                {"perplexity": perplexity(non_empty_texts, causal_model, causal_tokenizer)["mean_perplexity"]}
+            )
         else:
-            non_empty_prefixes = [prefix for i, prefix in enumerate(prefixes) if i in remained_indices ]
+            non_empty_prefixes = [prefix for i, prefix in enumerate(prefixes) if i in remained_indices]
             perplexity_results = conditional_perplexity(non_empty_texts, non_empty_prefixes, causal_model, causal_tokenizer)
-            key_metrics.update({"perplexity": perplexity_results["mean_perplexity"], "total_perplexity":perplexity_results["mean_perplexity_total"]})
-        
+            key_metrics.update(
+                {
+                    "perplexity": perplexity_results["mean_perplexity"],
+                    "total_perplexity": perplexity_results["mean_perplexity_total"],
+                }
+            )
+
         # Dist-1,2,3 measurements.
         key_metrics.update(distinct_n_grams(texts))
 
@@ -219,7 +228,6 @@ def evaluate_generation(
             texts_with_context = join_texts(prefixes, texts)
             gold_with_context = join_texts(prefixes, gold_texts)
             length = data_args.max_seq_length - data_args.truncation_length
-            key_metrics.update(mauve(predictions=texts_with_context, references=gold_with_context, length=length))
 
         if key + "_tokens" in results and eval_for_all_metrics:
             key_metrics.update(repetition(results[key + "_tokens"], causal_tokenizer))

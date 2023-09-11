@@ -1,36 +1,16 @@
 """Implements the metrics for evaluation of the diffusion models."""
-from mauve import compute_mauve
-from nltk.util import ngrams
-import numpy as np
-from collections import Counter
-from scipy import stats
-import operator
 import math
+import operator
+import pdb
+from collections import Counter
+
+import numpy as np
 import scipy
 import sklearn
-import pdb
+from nltk.util import ngrams
+from scipy import stats
 
 MAX_TEXT_LENGTH = 256
-
-
-def mauve(predictions, references, featurize_model_name="gpt2-large", length=MAX_TEXT_LENGTH):
-    """Computes MAUVE scores between two lists of generated text and reference text.
-    Args:
-    predictions (list of str) of predictions.
-    reference (list of str) of references.
-    """
-    results = compute_mauve(
-        p_text=references,  # human-text.
-        q_text=predictions,  # machine-text.
-        max_text_length=length,
-        featurize_model_name=featurize_model_name,
-        verbose=False,
-        # These are the tricks to make `mauve` run faster if #examples > 5K.
-        # See https://github.com/krishnap25/mauve#best-practices-for-mauve
-        # num_buckets=500 if len(predictions) > 5000 else "auto",
-        # kmeans_num_redo=1,
-    )
-    return {"muave": results.mauve}
 
 
 def distinct_n_grams(texts):
@@ -55,7 +35,12 @@ def distinct_n_grams(texts):
             dist_2.append(len(bigrams) / total_words)
             dist_3.append(len(trigrams) / total_words)
             dist_4.append(len(fourgrams) / total_words)
-    return {"dist-1": np.nanmean(dist_1), "dist-2": np.nanmean(dist_2), "dist-3": np.nanmean(dist_3),  "dist-4": np.nanmean(dist_4)}
+    return {
+        "dist-1": np.nanmean(dist_1),
+        "dist-2": np.nanmean(dist_2),
+        "dist-3": np.nanmean(dist_3),
+        "dist-4": np.nanmean(dist_4),
+    }
 
 
 def zipf(tokenized_texts, N=5000):
